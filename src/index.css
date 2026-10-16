@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* Riven Baker colour palette and fonts.
+   Plum-black ground, slightly lighter panels, Riven violet for anything the
+   player picked, a soft pink for curses and a gold accent kept for the logo. */
+@theme {
+  --color-ground: #15121b;
+  --color-panel: #1c1825;
+  --color-raised: #251f30;
+  --color-line: #2f2939;
+  --color-violet: #c3a0ed;
+  --color-ink: #eee8f3;
+  --color-muted: #a79db3;
+  --color-faint: #8a8096;
+  --color-curse: #f0a2ae;
+  --color-gold: #e2b06a;
+
+  --font-serif: "Source Serif 4 Variable", Georgia, serif;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
