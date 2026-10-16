@@ -36,7 +36,9 @@ export function CursePicker({ target, onToggle, onAcceptHarmless, onClear }: Cur
               {accepted === 0 ? "None selected · aiming for no curse" : `${accepted} selected · any one is fine`}
             </span>
           </span>
-          <ChevronIcon className={`mt-1.5 h-5 w-5 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronIcon
+            className={`mt-1.5 h-5 w-5 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          />
         </span>
       </button>
 
@@ -53,7 +55,11 @@ export function CursePicker({ target, onToggle, onAcceptHarmless, onClear }: Cur
               + Add common harmless curses
             </button>
             {accepted > 0 && (
-              <button type="button" onClick={onClear} className="rounded-md px-3 py-1.5 text-sm text-muted hover:text-ink">
+              <button
+                type="button"
+                onClick={onClear}
+                className="rounded-md px-3 py-1.5 text-sm text-muted hover:text-ink"
+              >
                 Clear all
               </button>
             )}
@@ -67,7 +73,9 @@ export function CursePicker({ target, onToggle, onAcceptHarmless, onClear }: Cur
               const isBuff = target.positives.includes(id);
               return (
                 <li key={id} className="border-b border-line/70">
-                  <label className={`flex items-center gap-3 py-2.5 ${isBuff ? "cursor-not-allowed opacity-45" : "cursor-pointer"}`}>
+                  <label
+                    className={`flex items-center gap-3 py-2.5 ${isBuff ? "cursor-not-allowed opacity-45" : "cursor-pointer"}`}
+                  >
                     <input
                       type="checkbox"
                       checked={target.acceptableNegatives.includes(id)}

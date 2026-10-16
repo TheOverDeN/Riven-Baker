@@ -21,7 +21,9 @@ describe("stat pools", () => {
 
 describe("recipes per weapon type", () => {
   it("picks the right Status Damage recipe for guns and melee", () => {
-    expect(recipesFor("statusDamage", "rifle").map((recipe) => recipe.ingredients)).toEqual([["damage", "statusChance"]]);
+    expect(recipesFor("statusDamage", "rifle").map((recipe) => recipe.ingredients)).toEqual([
+      ["damage", "statusChance"],
+    ]);
     expect(recipesFor("statusDamage", "melee").map((recipe) => recipe.ingredients)).toEqual([
       ["meleeDamage", "statusChance"],
     ]);

@@ -33,7 +33,9 @@ export function toggleBuff(target: RivenTarget, id: StatId): RivenTarget {
     return { ...target, positives: target.positives.filter((existing) => existing !== id) };
   }
 
-  const withoutOtherSplice = isSplicedStat(id) ? target.positives.filter((existing) => !isSplicedStat(existing)) : target.positives;
+  const withoutOtherSplice = isSplicedStat(id)
+    ? target.positives.filter((existing) => !isSplicedStat(existing))
+    : target.positives;
   if (withoutOtherSplice.length >= MAX_BUFFS) return target;
 
   return {

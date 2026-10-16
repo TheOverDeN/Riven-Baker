@@ -5,7 +5,10 @@ import "@fontsource-variable/source-serif-4";
 import { App } from "./App";
 import "./index.css";
 
-createRoot(document.getElementById("root")!).render(
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error('index.html is missing the <div id="root"> the app mounts into.');
+
+createRoot(rootElement).render(
   <StrictMode>
     <App />
   </StrictMode>,

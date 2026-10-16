@@ -33,7 +33,9 @@ export function App() {
       <main className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)] lg:gap-14">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-violet">The workbench</p>
-          <h1 className="mt-3 font-serif text-4xl font-semibold text-ink sm:text-5xl lg:text-[2.6rem]">A recipe for your next Riven.</h1>
+          <h1 className="mt-3 font-serif text-4xl font-semibold text-ink sm:text-5xl lg:text-[2.6rem]">
+            A recipe for your next Riven.
+          </h1>
           <p className="mt-2 text-xl text-muted">Choose your stats. Find your way to the roll.</p>
 
           <div className="mt-8 space-y-8 border-t border-line pt-8">

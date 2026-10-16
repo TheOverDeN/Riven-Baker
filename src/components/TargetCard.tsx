@@ -53,7 +53,11 @@ export function TargetCard({ target, plan }: TargetCardProps) {
 function TargetSummary({ target }: { target: RivenTarget }) {
   const curses = target.acceptableNegatives;
   const curseLine =
-    curses.length === 0 ? "No curse" : curses.length === 1 ? statName(curses[0]) : `Any of ${curses.length} accepted curses`;
+    curses.length === 0
+      ? "No curse"
+      : curses.length === 1
+        ? statName(curses[0])
+        : `Any of ${curses.length} accepted curses`;
 
   return (
     <ul className="mt-3 space-y-1 font-serif text-xl">
@@ -77,7 +81,9 @@ function CostSummary({ cycles }: { cycles: number }) {
       <p className="font-serif text-xl text-ink">Expected cost</p>
       <p className="mt-1 font-serif text-6xl font-semibold leading-none text-violet">{amount}</p>
       <p className="mt-2 text-lg text-violet">{unit} worth of Kuva</p>
-      <p className="mt-1 text-sm text-muted">Locked cycles count double. This is an average; see each step for bad luck.</p>
+      <p className="mt-1 text-sm text-muted">
+        Locked cycles count double. This is an average; see each step for bad luck.
+      </p>
     </div>
   );
 }
@@ -99,7 +105,9 @@ function PlanStepItem({ number, step, isLast }: { number: number; step: PlanStep
   return (
     <li className="relative flex gap-4 pb-6 last:pb-0">
       {/* The dashed line linking this step to the next one */}
-      {!isLast && <span aria-hidden="true" className="absolute left-4 top-9 bottom-1 border-l border-dashed border-violet/40" />}
+      {!isLast && (
+        <span aria-hidden="true" className="absolute left-4 top-9 bottom-1 border-l border-dashed border-violet/40" />
+      )}
 
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet text-sm font-semibold text-ground">
         {number}
