@@ -19,7 +19,7 @@ const RANGED_EXCEPT_ARCHGUN: readonly WeaponType[] = ["rifle", "shotgun", "pisto
 const MELEE: readonly WeaponType[] = ["melee"];
 const ALL = WEAPON_TYPES;
 
-export const STATS: readonly StatDefinition[] = [
+export const STATS = [
   // Faction damage, available everywhere
   { id: "damageToCorpus", name: "Damage to Corpus", weaponTypes: ALL, signRule: "either", category: "core" },
   { id: "damageToGrineer", name: "Damage to Grineer", weaponTypes: ALL, signRule: "either", category: "core" },
@@ -65,4 +65,7 @@ export const STATS: readonly StatDefinition[] = [
   { id: "criticalChanceForSlideAttack", name: "Critical Chance for Slide Attack", weaponTypes: MELEE, signRule: "either", category: "utility" },
   { id: "finisherDamage", name: "Finisher Damage", weaponTypes: MELEE, signRule: "either", category: "utility" },
   { id: "initialCombo", name: "Initial Combo", weaponTypes: MELEE, signRule: "either", category: "utility" },
-];
+] as const satisfies readonly StatDefinition<string>[];
+
+// Every regular stat id, taken from the list above.
+export type RegularStatId = (typeof STATS)[number]["id"];

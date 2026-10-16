@@ -25,47 +25,55 @@ export interface CycleSetup {
 
 export type RollCheck = (roll: RolledRiven) => boolean;
 
-export function chancePerCycle(setup: CycleSetup, isWanted: RollCheck): number {
+// Calls `visit` once for every possible result of a single cycle, together
+// with the chance of that exact result. Everything else in this file is built
+// on top of this one walk.
+export function forEachOutcome(setup: CycleSetup, visit: (roll: RolledRiven, chance: number) => void): void {
   const layouts: readonly LayoutChance[] = setup.frozenLayout
     ? [{ layout: setup.frozenLayout, chance: 1 }]
     : LAYOUT_CHANCES;
+  const buffCandidates = positivePool(setup.weaponType).filter((id) => !setup.keptPositives.includes(id));
 
-  return layouts.reduce(
-    (total, { layout, chance }) => total + chance * chanceWithinLayout(setup, layout, isWanted),
-    0,
-  );
-}
+  for (const { layout, chance: layoutChance } of layouts) {
+    const freeSlots = layout.positives - setup.keptPositives.length;
+    if (freeSlots < 0) continue;
 
-function chanceWithinLayout(setup: CycleSetup, layout: Layout, isWanted: RollCheck): number {
-  const freeSlots = layout.positives - setup.keptPositives.length;
-  if (freeSlots < 0) return 0;
+    const buffCombinations = combinations(buffCandidates, freeSlots);
+    const combinationChance = layoutChance / buffCombinations.length;
 
-  const candidates = positivePool(setup.weaponType).filter((id) => !setup.keptPositives.includes(id));
-  const buffCombinations = combinations(candidates, freeSlots);
-  const chanceOfEachCombination = 1 / buffCombinations.length;
-
-  let matchingChance = 0;
-  for (const combination of buffCombinations) {
-    const positives = [...setup.keptPositives, ...combination];
-    matchingChance += chanceOfEachCombination * chanceOfWantedCurse(setup.weaponType, layout, positives, isWanted);
+    for (const combination of buffCombinations) {
+      const positives = [...setup.keptPositives, ...combination];
+      visitCurseOptions(setup, layout, positives, combinationChance, visit);
+    }
   }
-  return matchingChance;
 }
 
-// Given the buffs that rolled, the chance that the curse slot also works out.
-function chanceOfWantedCurse(
-  weaponType: WeaponType,
+// Given the buffs that rolled, splits their chance over every possible curse
+// (or passes it straight through when the layout has no curse).
+function visitCurseOptions(
+  setup: CycleSetup,
   layout: Layout,
   positives: readonly StatId[],
-  isWanted: RollCheck,
-): number {
+  chance: number,
+  visit: (roll: RolledRiven, chance: number) => void,
+): void {
   if (layout.negatives === 0) {
-    return isWanted({ positives, negative: null }) ? 1 : 0;
+    visit({ positives, negative: null }, chance);
+    return;
   }
 
-  const curseCandidates = negativePool(weaponType).filter((id) => !positives.includes(id));
-  const wantedCurses = curseCandidates.filter((negative) => isWanted({ positives, negative }));
-  return wantedCurses.length / curseCandidates.length;
+  const curseCandidates = negativePool(setup.weaponType).filter((id) => !positives.includes(id));
+  for (const negative of curseCandidates) {
+    visit({ positives, negative }, chance / curseCandidates.length);
+  }
+}
+
+export function chancePerCycle(setup: CycleSetup, isWanted: RollCheck): number {
+  let total = 0;
+  forEachOutcome(setup, (roll, chance) => {
+    if (isWanted(roll)) total += chance;
+  });
+  return total;
 }
 
 // Every way of picking `size` different items from the list, ignoring order.
@@ -90,4 +98,38 @@ export function cyclesForConfidence(chance: number, confidence = 0.9): number {
   if (chance <= 0) return Infinity;
   if (chance >= 1) return 1;
   return Math.ceil(Math.log(1 - confidence) / Math.log(1 - chance));
+}
+
+// Some steps don't have one fixed chance. After "lock whichever wanted buff
+// shows up first", the chance of finishing depends on which buff got locked.
+// Such a step is a mix: with probability `weight` you are in a situation that
+// succeeds with `chance` per cycle. The weights add up to 1.
+export interface ChanceShare {
+  weight: number;
+  chance: number;
+}
+
+export function expectedCyclesMixed(shares: readonly ChanceShare[]): number {
+  return shares.reduce((total, share) => total + share.weight * expectedCycles(share.chance), 0);
+}
+
+// Same question as cyclesForConfidence, for a mix of situations. There is no
+// neat formula here, so it doubles n until the target is reached and then
+// binary searches for the smallest n that still reaches it.
+export function cyclesForConfidenceMixed(shares: readonly ChanceShare[], confidence = 0.9): number {
+  if (shares.some((share) => share.weight > 0 && share.chance <= 0)) return Infinity;
+
+  const successWithin = (cycles: number) =>
+    shares.reduce((total, share) => total + share.weight * (1 - (1 - share.chance) ** cycles), 0);
+
+  let high = 1;
+  while (successWithin(high) < confidence) high *= 2;
+
+  let low = Math.floor(high / 2) + 1;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (successWithin(middle) >= confidence) high = middle;
+    else low = middle + 1;
+  }
+  return high;
 }

@@ -10,7 +10,7 @@ import type { Recipe, SplicedStatDefinition } from "../domain/types";
 // exactly when both of its ingredients can roll there, so that gets worked out
 // from stats.ts instead of being typed in twice.
 
-export const SPLICED_STATS: readonly SplicedStatDefinition[] = [
+export const SPLICED_STATS = [
   { id: "ammoEfficiency", name: "Ammo Efficiency" },
   { id: "blast", name: "Blast" },
   { id: "corrosive", name: "Corrosive" },
@@ -29,7 +29,10 @@ export const SPLICED_STATS: readonly SplicedStatDefinition[] = [
   { id: "viral", name: "Viral" },
   { id: "weakPointCriticalChance", name: "Weak Point Critical Chance" },
   { id: "weakPointDamage", name: "Weak Point Damage" },
-];
+] as const satisfies readonly SplicedStatDefinition<string>[];
+
+// Every spliced stat id, taken from the list above.
+export type SplicedStatId = (typeof SPLICED_STATS)[number]["id"];
 
 export const RECIPES: readonly Recipe[] = [
   // Elemental combinations

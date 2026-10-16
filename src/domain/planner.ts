@@ -1,6 +1,14 @@
 import { LOCKED_CYCLE_COST_MULTIPLIER } from "../data/assumptions";
 import { isSplicedStat, negativePool, positivePool, recipesFor, statName } from "./catalog";
-import { chancePerCycle, cyclesForConfidence, expectedCycles, type CycleSetup, type RollCheck } from "./odds";
+import {
+  chancePerCycle,
+  cyclesForConfidenceMixed,
+  expectedCyclesMixed,
+  forEachOutcome,
+  type ChanceShare,
+  type CycleSetup,
+  type RollCheck,
+} from "./odds";
 import type { Layout, RivenTarget, RolledRiven, StatId } from "./types";
 
 // This turns "the riven I want" into a list of steps to get there.
@@ -32,9 +40,7 @@ export interface PlanStep {
   odds: StepOdds | null;
 }
 
-export type Plan =
-  | { ok: true; steps: PlanStep[]; expectedCycleCost: number }
-  | { ok: false; problems: string[] };
+export type Plan = { ok: true; steps: PlanStep[]; expectedCycleCost: number } | { ok: false; problems: string[] };
 
 export function planRiven(target: RivenTarget): Plan {
   const problems = findProblems(target);
@@ -116,7 +122,7 @@ function prepareForSpliceStep(target: RivenTarget, splicedStat: StatId): PlanSte
     title: `Find ${pairs.join(" or ")}`,
     summary: `Cycle until ${pairs.length > 1 ? "one pair is" : "both are"} on the riven, with ${describeLayout(layout)}. Splicing locks that layout.`,
     details,
-    odds: oddsFor(chancePerCycle(freshRiven, hasLayoutAndIngredients), 1),
+    odds: oddsFor(singleChance(chancePerCycle(freshRiven, hasLayoutAndIngredients)), 1),
   };
 }
 
@@ -146,7 +152,7 @@ function cyclingSteps(target: RivenTarget, setup: CycleSetup): PlanStep[] {
   const stillWanted = target.positives.filter((id) => !setup.keptPositives.includes(id));
   const finishSummary = `Keep cycling until the riven has ${describeTarget(target)}.`;
 
-  const plainOdds = oddsFor(chancePerCycle(setup, isTarget), 1);
+  const plainOdds = oddsFor(singleChance(chancePerCycle(setup, isTarget)), 1);
   const lockedPlan = canUseLock(target, stillWanted) ? planWithLock(target, setup, stillWanted) : null;
 
   if (!lockedPlan || costOf(plainOdds) <= lockedPlan.cost) {
@@ -185,16 +191,38 @@ function canUseLock(target: RivenTarget, stillWanted: StatId[]): boolean {
 }
 
 function planWithLock(target: RivenTarget, setup: CycleSetup, stillWanted: StatId[]) {
-  const findAnyWanted: RollCheck = (roll) => stillWanted.some((id) => roll.positives.includes(id));
-  const findOdds = oddsFor(chancePerCycle(setup, findAnyWanted), 1);
-
-  // Which wanted buff shows up first is random, so average over all of them.
-  const finishChances = stillWanted.map((locked) =>
-    chancePerCycle({ ...setup, keptPositives: [...setup.keptPositives, locked] }, matchesTarget(target)),
+  // How likely the finish is depends on which buff ends up locked, so work
+  // that out for each wanted buff first.
+  const finishChance = new Map(
+    stillWanted.map((locked) => [
+      locked,
+      chancePerCycle({ ...setup, keptPositives: [...setup.keptPositives, locked] }, matchesTarget(target)),
+    ]),
   );
-  const averageFinishChance = finishChances.reduce((sum, chance) => sum + chance, 0) / finishChances.length;
-  const finishOdds = oddsFor(averageFinishChance, LOCKED_CYCLE_COST_MULTIPLIER);
+  const finishChanceOf = (id: StatId) => finishChance.get(id) ?? 0;
 
+  // Walk every result of a cycle. When it shows one or more wanted buffs, the
+  // player locks the one that is quickest to finish from. Adding up those
+  // results gives the exact chance of the "find" step and how often each buff
+  // ends up locked. (A lucky roll that already completes everything is counted
+  // as a normal find, so these numbers lean slightly pessimistic.)
+  const lockedShare = new Map<StatId, number>();
+  forEachOutcome(setup, (roll, chance) => {
+    const found = stillWanted.filter((id) => roll.positives.includes(id));
+    if (found.length === 0) return;
+    const best = found.reduce((a, b) => (finishChanceOf(b) > finishChanceOf(a) ? b : a));
+    lockedShare.set(best, (lockedShare.get(best) ?? 0) + chance);
+  });
+
+  const findChance = [...lockedShare.values()].reduce((sum, share) => sum + share, 0);
+  if (findChance === 0) return null;
+  const finishShares = [...lockedShare].map(([id, share]) => ({
+    weight: share / findChance,
+    chance: finishChanceOf(id),
+  }));
+
+  const findOdds = oddsFor(singleChance(findChance), 1);
+  const finishOdds = oddsFor(finishShares, LOCKED_CYCLE_COST_MULTIPLIER);
   return { findOdds, finishOdds, cost: costOf(findOdds) + costOf(finishOdds) };
 }
 
@@ -223,13 +251,21 @@ function sameLayout(roll: RolledRiven, layout: Layout): boolean {
   return roll.positives.length === layout.positives && (roll.negative !== null) === (layout.negatives === 1);
 }
 
-function oddsFor(chance: number, costMultiplier: number): StepOdds {
+// Builds the numbers shown for a step. Most steps have one fixed chance; the
+// step after a lock is a mix (see ChanceShare in odds.ts). For a mix, the
+// "chance per cycle" shown is the one that gives the same average.
+function oddsFor(shares: readonly ChanceShare[], costMultiplier: number): StepOdds {
+  const average = expectedCyclesMixed(shares);
   return {
-    chancePerCycle: chance,
-    expectedCycles: expectedCycles(chance),
-    cyclesFor90Percent: cyclesForConfidence(chance),
+    chancePerCycle: Number.isFinite(average) ? 1 / average : 0,
+    expectedCycles: average,
+    cyclesFor90Percent: cyclesForConfidenceMixed(shares),
     costMultiplier,
   };
+}
+
+function singleChance(chance: number): ChanceShare[] {
+  return [{ weight: 1, chance }];
 }
 
 function costOf(odds: StepOdds): number {
@@ -253,6 +289,7 @@ function describeLayout(layout: Layout): string {
 function describeTarget(target: RivenTarget): string {
   const buffs = target.positives.map(statName).join(", ");
   if (target.acceptableNegatives.length === 0) return `${buffs} and no curse`;
-  if (target.acceptableNegatives.length === 1) return `${buffs} and ${statName(target.acceptableNegatives[0])} as the curse`;
+  if (target.acceptableNegatives.length === 1)
+    return `${buffs} and ${statName(target.acceptableNegatives[0])} as the curse`;
   return `${buffs} and one of your accepted curses`;
 }

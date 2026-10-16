@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { chancePerCycle, combinations, cyclesForConfidence, expectedCycles } from "./odds";
+import {
+  chancePerCycle,
+  combinations,
+  cyclesForConfidence,
+  cyclesForConfidenceMixed,
+  expectedCycles,
+  expectedCyclesMixed,
+} from "./odds";
 import { positivePool } from "./catalog";
 
 describe("combinations", () => {
@@ -26,7 +33,9 @@ describe("chancePerCycle", () => {
   // If the outcome model is right, all outcomes together must add up to 100%.
   it("adds up to 1 over all outcomes for every setup", () => {
     expect(chancePerCycle({ weaponType: "rifle", keptPositives: [], frozenLayout: null }, anything)).toBeCloseTo(1);
-    expect(chancePerCycle({ weaponType: "melee", keptPositives: ["meleeDamage"], frozenLayout: null }, anything)).toBeCloseTo(1);
+    expect(
+      chancePerCycle({ weaponType: "melee", keptPositives: ["meleeDamage"], frozenLayout: null }, anything),
+    ).toBeCloseTo(1);
     expect(
       chancePerCycle(
         { weaponType: "shotgun", keptPositives: ["viral"], frozenLayout: { positives: 3, negatives: 1 } },
@@ -64,5 +73,28 @@ describe("cycle counts", () => {
     // 1 - 0.5^4 = 93.75%, while 3 cycles only give 87.5%
     expect(cyclesForConfidence(0.5)).toBe(4);
     expect(cyclesForConfidence(1)).toBe(1);
+  });
+});
+
+describe("mixed chances", () => {
+  it("behaves like a single chance when there is only one situation", () => {
+    const single = [{ weight: 1, chance: 0.05 }];
+    expect(expectedCyclesMixed(single)).toBeCloseTo(expectedCycles(0.05));
+    expect(cyclesForConfidenceMixed(single)).toBe(cyclesForConfidence(0.05));
+  });
+
+  it("matches a hand-worked mix", () => {
+    // Half the time it always works, half the time it is a coin flip.
+    const mix = [
+      { weight: 0.5, chance: 1 },
+      { weight: 0.5, chance: 0.5 },
+    ];
+    expect(expectedCyclesMixed(mix)).toBeCloseTo(1.5);
+    // Success within n cycles is 0.5 + 0.5 * (1 - 0.5^n): 87.5% at 2, 93.75% at 3.
+    expect(cyclesForConfidenceMixed(mix)).toBe(3);
+  });
+
+  it("never finishes if one possible situation can't succeed", () => {
+    expect(cyclesForConfidenceMixed([{ weight: 1, chance: 0 }])).toBe(Infinity);
   });
 });

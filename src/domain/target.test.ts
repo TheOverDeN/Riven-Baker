@@ -10,7 +10,8 @@ describe("toggleBuff", () => {
 
   it("stops at three buffs", () => {
     let target = emptyTarget("rifle");
-    for (const id of ["criticalChance", "criticalDamage", "multishot", "fireRate"]) target = toggleBuff(target, id);
+    for (const id of ["criticalChance", "criticalDamage", "multishot", "fireRate"] as const)
+      target = toggleBuff(target, id);
     expect(target.positives).toEqual(["criticalChance", "criticalDamage", "multishot"]);
   });
 

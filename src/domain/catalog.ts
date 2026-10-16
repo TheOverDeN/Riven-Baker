@@ -1,6 +1,14 @@
 import { STATS } from "../data/stats";
 import { RECIPES, SPLICED_STATS } from "../data/recipes";
-import type { Recipe, SplicedStatDefinition, StatCategory, StatDefinition, StatId, WeaponType } from "./types";
+import type {
+  Recipe,
+  SplicedStatDefinition,
+  SplicedStatId,
+  StatCategory,
+  StatDefinition,
+  StatId,
+  WeaponType,
+} from "./types";
 
 // Lookups over the raw data files. The rest of the app asks questions like
 // "what can roll as a curse on a shotgun?" through here, so the data files
@@ -17,7 +25,7 @@ export function statCategory(id: StatId): StatCategory | null {
   return statsById.get(id)?.category ?? null;
 }
 
-export function isSplicedStat(id: StatId): boolean {
+export function isSplicedStat(id: StatId): id is SplicedStatId {
   return splicedStatsById.has(id);
 }
 

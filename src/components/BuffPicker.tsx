@@ -10,7 +10,8 @@ import {
 import { MAX_BUFFS } from "../domain/target";
 import type { RivenTarget, StatId } from "../domain/types";
 import { InfoIcon, SearchIcon } from "./Icons";
-import { STAT_TABS, weaponLabel, type StatTab } from "./labels";
+import { weaponLabel, type StatTab } from "./labels";
+import { STAT_PANEL_ID, StatTabs, statTabId } from "./StatTabs";
 import { SectionHeading } from "./SectionHeading";
 
 // Section 02: picking the buffs.
@@ -41,7 +42,9 @@ export function BuffPicker({ target, onToggle }: BuffPickerProps) {
 
   const options = buffOptions(target);
   const searching = query.trim().length > 0;
-  const visible = searching ? options.filter((option) => matchesQuery(option, query)) : options.filter((option) => option.tab === tab);
+  const visible = searching
+    ? options.filter((option) => matchesQuery(option, query))
+    : options.filter((option) => option.tab === tab);
 
   const isFull = target.positives.length >= MAX_BUFFS;
   const hasSplice = target.positives.some(isSplicedStat);
@@ -76,41 +79,32 @@ export function BuffPicker({ target, onToggle }: BuffPickerProps) {
         {searching ? (
           <p className="text-sm text-muted">Showing matches from every tab.</p>
         ) : (
-          <div role="tablist" aria-label="Stat groups" className="flex gap-1 overflow-x-auto border-b border-line">
-            {STAT_TABS.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={tab === id}
-                onClick={() => setTab(id)}
-                className={`-mb-px shrink-0 border-b-2 px-2.5 py-2 text-sm sm:px-4 transition-colors ${
-                  tab === id ? "border-violet text-ink" : "border-transparent text-muted hover:text-ink"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <StatTabs active={tab} onChange={setTab} />
         )}
 
-        {visible.length > 0 ? (
-          <ul className="grid gap-x-8 sm:grid-cols-2">
-            {visible.map((option) => (
-              <StatRow
-                key={option.id}
-                option={option}
-                checked={target.positives.includes(option.id)}
-                disabled={!canPick(option.id)}
-                onToggle={() => onToggle(option.id)}
-              />
-            ))}
-          </ul>
-        ) : (
-          <p className="py-2 text-sm text-muted">
-            No buff called "{query.trim()}" on a {weaponLabel(target.weaponType).toLowerCase()} riven.
-          </p>
-        )}
+        <div
+          id={searching ? undefined : STAT_PANEL_ID}
+          role={searching ? undefined : "tabpanel"}
+          aria-labelledby={searching ? undefined : statTabId(tab)}
+        >
+          {visible.length > 0 ? (
+            <ul className="grid gap-x-8 sm:grid-cols-2">
+              {visible.map((option) => (
+                <StatRow
+                  key={option.id}
+                  option={option}
+                  checked={target.positives.includes(option.id)}
+                  disabled={!canPick(option.id)}
+                  onToggle={() => onToggle(option.id)}
+                />
+              ))}
+            </ul>
+          ) : (
+            <p className="py-2 text-sm text-muted">
+              No buff called "{query.trim()}" on a {weaponLabel(target.weaponType).toLowerCase()} riven.
+            </p>
+          )}
+        </div>
 
         {pickedSplice && (
           <p className="flex items-center gap-2 text-sm text-muted">
@@ -139,7 +133,10 @@ function SelectedBuffs({
   return (
     <div className="flex flex-wrap gap-2">
       {target.positives.map((id) => (
-        <span key={id} className="flex items-center gap-1 rounded-md bg-violet py-1.5 pl-3 pr-1.5 text-sm font-medium text-ground">
+        <span
+          key={id}
+          className="flex items-center gap-1 rounded-md bg-violet py-1.5 pl-3 pr-1.5 text-sm font-medium text-ground"
+        >
           {statName(id)}
           <button
             type="button"
@@ -177,7 +174,9 @@ function StatRow({
 }) {
   return (
     <li className="border-b border-line/70">
-      <label className={`flex items-center gap-3 py-2.5 ${disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"}`}>
+      <label
+        className={`flex items-center gap-3 py-2.5 ${disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"}`}
+      >
         <input
           type="checkbox"
           checked={checked}

@@ -3,7 +3,12 @@ import { findProblems, planRiven } from "./planner";
 import type { RivenTarget } from "./types";
 
 function target(overrides: Partial<RivenTarget>): RivenTarget {
-  return { weaponType: "rifle", positives: ["criticalChance", "criticalDamage"], acceptableNegatives: [], ...overrides };
+  return {
+    weaponType: "rifle",
+    positives: ["criticalChance", "criticalDamage"],
+    acceptableNegatives: [],
+    ...overrides,
+  };
 }
 
 describe("findProblems", () => {
@@ -16,7 +21,9 @@ describe("findProblems", () => {
   });
 
   it("allows only one spliced stat", () => {
-    expect(findProblems(target({ positives: ["viral", "blast"] }))).toContain("A riven can only have one spliced stat.");
+    expect(findProblems(target({ positives: ["viral", "blast"] }))).toContain(
+      "A riven can only have one spliced stat.",
+    );
   });
 
   it("rejects stats that can't roll on the weapon type", () => {
@@ -35,7 +42,9 @@ describe("findProblems", () => {
 
 describe("planRiven", () => {
   it("plans plain cycling when no spliced stat is wanted", () => {
-    const plan = planRiven(target({ positives: ["criticalChance", "criticalDamage", "multishot"], acceptableNegatives: ["zoom"] }));
+    const plan = planRiven(
+      target({ positives: ["criticalChance", "criticalDamage", "multishot"], acceptableNegatives: ["zoom"] }),
+    );
 
     expect(plan.ok).toBe(true);
     if (!plan.ok) return;
@@ -46,7 +55,9 @@ describe("planRiven", () => {
   });
 
   it("prepares, splices, then cycles when a spliced stat is wanted", () => {
-    const plan = planRiven(target({ positives: ["viral", "criticalChance", "criticalDamage"], acceptableNegatives: ["zoom"] }));
+    const plan = planRiven(
+      target({ positives: ["viral", "criticalChance", "criticalDamage"], acceptableNegatives: ["zoom"] }),
+    );
 
     expect(plan.ok).toBe(true);
     if (!plan.ok) return;
